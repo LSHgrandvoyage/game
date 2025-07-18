@@ -105,31 +105,45 @@ void Game::render(){
 
     sf::Font& font = ResourceManager::getInstance().getFont("main");
     sf::Text scoreText("Score: " + std::to_string(score), font, 32);
-    scoreText.setPosition(100, 50);
+    scoreText.setPosition(30, 20); // score location
     window.draw(scoreText);
 
     sf::Text highScoreText("High Score: " + std::to_string(highScore), font, 32);
-    highScoreText.setPosition(100, 100);
+    highScoreText.setPosition(30, 60); // high score location
     window.draw(highScoreText);
 
     if (showLevelUp){
         sf::Text levelUpText("Level Up!", font, 48);
         levelUpText.setFillColor(sf::Color::Yellow);
-        levelUpText.setPosition(600, 450); // 중앙
+        levelUpText.setPosition(600, 450); // Center of the window
         levelUpText.setOrigin(levelUpText.getLocalBounds().width / 2, levelUpText.getLocalBounds().height / 2);
         window.draw(levelUpText);
     }
 
     if (gameOver){
         sf::Sprite boom(ResourceManager::getInstance().getTexture("explode"));
-        boom.setPosition(0, 0);
+        // Set the boom background to center
         boom.setScale(1200.0f / boom.getTexture()->getSize().x, 900.0f / boom.getTexture()->getSize().y);
+        boom.setPosition(0, 0);
         window.draw(boom);
 
-        sf::Text boomText("BOOM!", font, 64);
+        sf::Text boomText("BOOM!", font, 96);
         boomText.setFillColor(sf::Color::Red);
         boomText.setOrigin(boomText.getLocalBounds().width / 2, boomText.getLocalBounds().height / 2);
+        boomText.setPosition(600, 350);
         window.draw(boomText);
+
+        sf::Text scoreText("Score: " + std::to_string(score), font, 48);
+        scoreText.setFillColor(sf::Color::White);
+        scoreText.setOrigin(scoreText.getLocalBounds().width / 2, scoreText.getLocalBounds().height / 2);
+        scoreText.setPosition(600, 450);
+        window.draw(scoreText);
+
+        sf::Text highScoreText("High Score: " + std::to_string(highScore), font, 48);
+        highScoreText.setFillColor(sf::Color::White);
+        highScoreText.setOrigin(highScoreText.getLocalBounds().width / 2, highScoreText.getLocalBounds().height / 2);
+        highScoreText.setPosition(600, 520);
+        window.draw(highScoreText);
     }
 
     window.display();
