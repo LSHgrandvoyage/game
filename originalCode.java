@@ -1,38 +1,51 @@
+package com.github.thomasbratt.processingtest;
+
+import processing.core.PApplet;
+import processing.core.PIamge;
+import processing.core.PVector;
 import ddf.minim.*;
 import ddf.minim.analysis.*;
 
-Minim minim;
-AudioPlayer bgm;
-AudioPlayer boomsound;
-AudioPlayer levelupsound;
-AudioInput in;
+public class Spacegame extends PApplet {
+  Minim minim;
+  AudioPlayer bgm, boomSound, levelSound;
+  AudioInput in;
 
-float radius = 40; 
-float y;
-float ySpeed;
-float gravity = 0.2;
+  float radius = 40;
+  float y;
+  float ySpeed;
+  float gravity = 0.2f;
 
-PImage spaceship, littleplanet, spacebackground, explode;
+  PIamge spaceship, littleplanet, spacebackground, explode;
 
-PVector[] obstacles;
-int numObstacles = 5;
-float obstacleGap = 200;
-float obstacleWidth = 50;
-float speed = 2;
+  PVector[] obstacles;
+  int numObstacles = 5;
+  float obstacleGap = 200;
+  float obstacleWidth = 50;
+  float speed = 2;
 
-int score = 0;
-int highScore = 0;
-boolean gameOver = false;
-boolean restart = false;
+  int score = 0;
+  int highScore = 0;
+  boolean gameOver = false;
+  boolean restart = false;
 
-boolean boomsoundPlayed = false;
+  boolean boomSoundPlayed = false;
+  float initialGap = 300; // initial gap of obstacles
+  float minGap = 100; // minimum gap of obstacles
 
-float initialGap = 300;  // initial gap of pass road
-float minGap = 100;      // minimum gap of pass road
+  boolean showLevelUp = false;
+  float levelUpTime = 0;
+  float levelUpDuration = 2;
 
-boolean showLevelUp = false;
-float levelUpTime = 0;
-float levelUpDuration = 2; // 2 seconds
+  public void settings() {
+    size(800, 600);
+  }
+
+  public void setup() {
+    minim = new Minim(this);
+    in = minim.getLineIn(Minim.MONO, 2048);
+  }
+}
 
 void setup() {
   size(800, 600);
