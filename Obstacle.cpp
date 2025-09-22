@@ -2,50 +2,85 @@
 #include "ResourceManager.h"
 #include <cstdlib>
 
-Obstacle::Obstacle(float x_, float gap_) : x(x_), width(80), gap(gap_), scored(false) {
-    float minHeight = 100.0f;
-    float maxY = 900 - gap - minHeight;
-    y = rand() % (int)(maxY - minHeight + 1) + minHeight;
+Obstacle::Obstacle(float x_, float gap_) : x(x_), gap(gap_), scored(false) {
+    resetPosition(0);
     sprite.setTexture(ResourceManager::getInstance().getTexture("obstacle"));
-    sprite.setPosition(x, y);
 }
 
-void Obstacle::update(float dt, int score){
-    float speed = 2.5f;
-    x -= speed;
-    if (x < -width){
-        x = 1200;
-        float minGap = 150.0f;
-        float minHeight = 100.0f;
-        float currentGap = gap - (score / 10) * 30.0f;
-        if (currentGap < minGap) currentGap = minGap;
-        float maxY = 900 - currentGap - minHeight;
-        y = rand() % (int)(maxY - minHeight + 1) + minHeight;
-        gap = currentGap;
+void Obstacle::update(float dt, int score) {
+    x -= SPEED * dt * 60.0f; // Normalize to 60 FPS
+    if (x < -WIDTH) {
+        x = SCREEN_WIDTH;
+        resetPosition(score);
         scored = false;
     }
-    sprite.setPosition(x, y);
 }
 
-void Obstacle::render(sf::RenderWindow& window){
-    // upper obstacle
-    sprite.setPosition(x, 0);
-    sprite.setScale(width / sprite.getTexture()->getSize().x, y / sprite.getTexture()->getSize().y);
-    window.draw(sprite);
-
-    // lower obstacle
-    sprite.setPosition(x, y + gap);
-    sprite.setScale(width / sprite.getTexture()->getSize().x, (900 - (y + gap)) / sprite.getTexture()->getSize().y);
-    window.draw(sprite);
+void Obstacle::render(sf::RenderWindow& window) {
+    renderUpperObstacle(window);
+    renderLowerObstacle(window);
 }
 
 bool Obstacle::checkCollision(const Spaceship& spaceship) const {
-    return (x + width < 50) && !scored;
+    if (!isInXRange(spaceship)) {
+        return false;
+    }
+    
+    float shipY = spaceship.getY();
+    float shipRadius = spaceship.getRadius();
+    
+    // Check collision with upper obstacle
+    if (shipY - shipRadius < y) {
+        return true;
+    }
+    
+    // Check collision with lower obstacle
+    if (shipY + shipRadius > y + gap) {
+        return true;
+    }
+    
+    return false;
 }
 
-bool Obstacle::passed(const Spaceship& ship) const {
-    return (x + width < 50) && !scored;
+bool Obstacle::hasPassed(const Spaceship& ship) const {
+    return (x + WIDTH < SPACESHIP_X) && !scored;
 }
 
-bool Obstacle::isScored() const { return scored; }
-void Obstacle::setScored(bool val) { scored = val; }
+bool Obstacle::isScored() const { 
+    return scored; 
+}
+
+void Obstacle::setScored(bool val) { 
+    scored = val; 
+}
+
+void Obstacle::resetPosition(int score) {
+    float currentGap = gap - (score / 10) * GAP_REDUCTION_PER_SCORE;
+    if (currentGap < MIN_GAP) {
+        currentGap = MIN_GAP;
+    }
+    
+    float maxY = SCREEN_HEIGHT - currentGap - MIN_HEIGHT;
+    y = rand() % (int)(maxY - MIN_HEIGHT + 1) + MIN_HEIGHT;
+    gap = currentGap;
+}
+
+void Obstacle::renderUpperObstacle(sf::RenderWindow& window) {
+    sprite.setPosition(x, 0);
+    sprite.setScale(WIDTH / sprite.getTexture()->getSize().x, 
+                   y / sprite.getTexture()->getSize().y);
+    window.draw(sprite);
+}
+
+void Obstacle::renderLowerObstacle(sf::RenderWindow& window) {
+    sprite.setPosition(x, y + gap);
+    sprite.setScale(WIDTH / sprite.getTexture()->getSize().x, 
+                   (SCREEN_HEIGHT - (y + gap)) / sprite.getTexture()->getSize().y);
+    window.draw(sprite);
+}
+
+bool Obstacle::isInXRange(const Spaceship& spaceship) const {
+    float shipX = SPACESHIP_X;
+    float shipRadius = spaceship.getRadius();
+    return (shipX + shipRadius > x && shipX - shipRadius < x + WIDTH);
+}

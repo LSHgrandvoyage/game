@@ -1,29 +1,34 @@
 #include "Spaceship.h"
 #include "ResourceManager.h"
 
-Spaceship::Spaceship() : y(300), ySpeed(0), gravity(0.2f), radius(40) {
+Spaceship::Spaceship() : y(300), ySpeed(0), radius(40) {
     sprite.setTexture(ResourceManager::getInstance().getTexture("spaceship"));
     sprite.setOrigin(radius, radius);
     sprite.setScale(0.15f, 0.1f);
     sprite.setPosition(50, y);
 }
 
-void Spaceship::update(float dt){
-    ySpeed += gravity;
-    y += ySpeed;
-    if (y < radius){
-        y = radius;
-        ySpeed = 0;
-    }
+void Spaceship::update(float dt) {
+    applyPhysics(dt);
+    constrainMovement();
     sprite.setPosition(50, y);
 }
 
-void Spaceship::render(sf::RenderWindow& window){
+void Spaceship::render(sf::RenderWindow& window) {
     window.draw(sprite);
 }
 
-void Spaceship::onInput(float volume){
-    if (volume > 5.0f) ySpeed = -volume * 0.05f;
+void Spaceship::handleMicInput(float volume) {
+    if (volume > MIN_VOLUME_THRESHOLD) {
+        float lift = -volume * LIFT_MULTIPLIER;
+        ySpeed += lift;
+        if (ySpeed < MAX_ASCENT_SPEED) {
+            ySpeed = MAX_ASCENT_SPEED;
+        }
+    }
+    if (ySpeed > MAX_DESCENT_SPEED) {
+        ySpeed = MAX_DESCENT_SPEED;
+    }
 }
 
 void Spaceship::reset() {
@@ -32,6 +37,32 @@ void Spaceship::reset() {
     sprite.setPosition(50, y);
 }
 
-float Spaceship::getY() const { return y; }
-float Spaceship::getRadius() const { return radius; }
-sf::FloatRect Spaceship::getBounds() const { return sprite.getGlobalBounds(); }
+void Spaceship::applyPhysics(float dt) {
+    ySpeed += GRAVITY;
+    y += ySpeed;
+}
+
+void Spaceship::constrainMovement() {
+    // Top boundary
+    if (y < radius) {
+        y = radius;
+        ySpeed = 0;
+    }
+    // Bottom boundary
+    if (y > 900 - radius) {
+        y = 900 - radius;
+        ySpeed = 0;
+    }
+}
+
+float Spaceship::getY() const { 
+    return y; 
+}
+
+float Spaceship::getRadius() const { 
+    return radius; 
+}
+
+sf::FloatRect Spaceship::getBounds() const { 
+    return sprite.getGlobalBounds(); 
+}

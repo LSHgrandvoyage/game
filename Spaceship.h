@@ -6,12 +6,31 @@ public:
     Spaceship();
     void update(float dt);
     void render(sf::RenderWindow& window);
-    void onInput(float volume);
+    void handleMicInput(float volume);
     void reset();
+    
+    // Getters
     float getY() const;
     float getRadius() const;
     sf::FloatRect getBounds() const;
+    
 private:
-    float y, ySpeed, gravity, radius;
+    // Physics constants
+    static constexpr float GRAVITY = 0.05f;
+    static constexpr float MAX_ASCENT_SPEED = -12.0f;
+    static constexpr float MAX_DESCENT_SPEED = 8.0f;
+    static constexpr float LIFT_MULTIPLIER = 0.12f;
+    static constexpr float MIN_VOLUME_THRESHOLD = 1.5f;
+    
+    // Physics properties
+    float y;
+    float ySpeed;
+    float radius;
+    
+    // Rendering
     sf::Sprite sprite;
+    
+    // Helper methods
+    void applyPhysics(float dt);
+    void constrainMovement();
 };
