@@ -31,6 +31,13 @@ void Spaceship::handleMicInput(float volume) {
     }
 }
 
+void Spaceship::giveBoost() {
+    ySpeed += BOOST_FORCE;
+    if (ySpeed < MAX_ASCENT_SPEED) {
+        ySpeed = MAX_ASCENT_SPEED;
+    }
+}
+
 void Spaceship::reset() {
     y = 300;
     ySpeed = 0;

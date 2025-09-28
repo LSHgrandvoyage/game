@@ -33,17 +33,11 @@ void Game::handleEvents(){
             resetGame();
         }
         
-        // Handle keyboard input for mic simulation
+        // Handle keyboard input - spacebar gives boost
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Space) {
-                spacePressed = true;
-                simulatedVolume = 50.0f; // Simulate medium volume
-            }
-        }
-        if (event.type == sf::Event::KeyReleased) {
-            if (event.key.code == sf::Keyboard::Space) {
-                spacePressed = false;
-                simulatedVolume = 0.0f;
+                // Give spaceship a small upward boost
+                spaceship->giveBoost();
             }
         }
     }
@@ -123,15 +117,12 @@ void Game::initializeGameObjects() {
 void Game::updateGameplay(float dt) {
     AudioManager::getInstance().updateMicVolume();
     
-    // Use real mic volume if available, otherwise use simulated volume
-    float volume;
+    // Use mic volume if available
     if (AudioManager::getInstance().isMicAvailable()) {
-        volume = AudioManager::getInstance().getMicVolume();
-    } else {
-        volume = simulatedVolume;
+        float volume = AudioManager::getInstance().getMicVolume();
+        spaceship->handleMicInput(volume);
     }
     
-    spaceship->handleMicInput(volume);
     spaceship->update(dt);
 }
 
@@ -239,10 +230,28 @@ void Game::renderDebugInfo() {
     spaceshipYText.setFillColor(sf::Color::Cyan);
     window.draw(spaceshipYText);
     
+    // Volume bar visualization
+    sf::RectangleShape volumeBar(sf::Vector2f(volume * 2.0f, 20));
+    volumeBar.setPosition(30, 190);
+    volumeBar.setFillColor(volume > 0.5f ? sf::Color::Green : sf::Color::Red);
+    window.draw(volumeBar);
+    
+    sf::RectangleShape volumeBarBg(sf::Vector2f(200, 20));
+    volumeBarBg.setPosition(30, 190);
+    volumeBarBg.setFillColor(sf::Color::Transparent);
+    volumeBarBg.setOutlineColor(sf::Color::White);
+    volumeBarBg.setOutlineThickness(1);
+    window.draw(volumeBarBg);
+    
     // Instructions
     if (!micAvailable) {
-        sf::Text instructionText("Press SPACE to simulate mic input", font, 20);
-        instructionText.setPosition(30, 190);
+        sf::Text instructionText("Press SPACE to boost up", font, 20);
+        instructionText.setPosition(30, 220);
+        instructionText.setFillColor(sf::Color::White);
+        window.draw(instructionText);
+    } else {
+        sf::Text instructionText("Speak into microphone OR press SPACE to boost", font, 20);
+        instructionText.setPosition(30, 220);
         instructionText.setFillColor(sf::Color::White);
         window.draw(instructionText);
     }

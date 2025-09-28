@@ -1,6 +1,7 @@
 #include "AudioManager.h"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 AudioManager& AudioManager::getInstance() {
     static AudioManager instance;
@@ -102,12 +103,24 @@ float AudioManager::calculateRMSVolume(const sf::SoundBuffer& buffer) const {
     }
     
     float sum = 0.0f;
+    float maxSample = 0.0f;
     for (std::size_t i = 0; i < sampleCount; ++i) {
         float sample = static_cast<float>(samples[i]) / 32768.0f; // Normalize to -1.0 ~ 1.0
         sum += sample * sample;
+        maxSample = std::max(maxSample, std::abs(sample));
     }
     
     float rms = std::sqrt(sum / sampleCount);
-    return rms * 100.0f; // Convert to 0 ~ 100 range
+    float volume = rms * 100.0f; // Convert to 0 ~ 100 range
+    
+    // Debug output every 60 frames (approximately 1 second at 60fps)
+    static int debugCounter = 0;
+    if (++debugCounter >= 60) {
+        debugCounter = 0;
+        std::cout << "Mic Debug - RMS: " << rms << ", Volume: " << volume 
+                  << ", Max Sample: " << maxSample << ", Samples: " << sampleCount << std::endl;
+    }
+    
+    return volume;
 }
 
