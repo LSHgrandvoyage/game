@@ -1,5 +1,5 @@
-#include "Obstacle.h"
-#include "ResourceManager.h"
+#include "objects/Obstacle.h"
+#include "managers/ResourceManager.h"
 #include <cstdlib>
 
 Obstacle::Obstacle(float x_, float gap_) : x(x_), gap(gap_), scored(false) {

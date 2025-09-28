@@ -1,5 +1,5 @@
-#include "Spaceship.h"
-#include "ResourceManager.h"
+#include "objects/Spaceship.h"
+#include "managers/ResourceManager.h"
 
 Spaceship::Spaceship() : y(300), ySpeed(0), radius(40) {
     sprite.setTexture(ResourceManager::getInstance().getTexture("spaceship"));

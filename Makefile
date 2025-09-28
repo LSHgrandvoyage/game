@@ -1,8 +1,15 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -g
+CXXFLAGS = -std=c++17 -Wall -g -Isrc
 LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
-SRCS = main.cpp Game.cpp Spaceship.cpp Obstacle.cpp ResourceManager.cpp AudioManager.cpp
+# Source files with new directory structure
+SRCS = src/main.cpp \
+       src/game/Game.cpp \
+       src/objects/Spaceship.cpp \
+       src/objects/Obstacle.cpp \
+       src/managers/ResourceManager.cpp \
+       src/managers/AudioManager.cpp
+
 OBJS = $(SRCS:.cpp=.o)
 TARGET = game
 
@@ -12,9 +19,10 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+	rm -f *.o
 
 .PHONY: all clean

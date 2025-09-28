@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "Spaceship.h"
+#include "objects/Spaceship.h"
 
 class Obstacle {
 public:
