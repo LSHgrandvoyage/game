@@ -3,31 +3,9 @@
 목소리로 비행기를 움직여 소행성을 피하자
 
 ## Structure
-/game
-├── /src # source code
-│ ├── /managers # Resource management code
-│ │ ├── AudioManager.cpp
-│ │ ├── AudioManager.h
-│ │ ├── ResourceManager.cpp
-│ │ └── ResourceManager.h
-│ │
-│ ├── /game # Game core code
-│ │ ├── Game.cpp
-│ │ └── Game.h
-│ │
-│ ├── /objects # Game object classes
-│ │ ├── GameObject.h
-│ │ ├── Obstacle.cpp
-│ │ ├── Obstacle.h
-│ │ ├── Spaceship.cpp
-│ │ └── Spaceship.h
-│ │
-│ └── main.cpp
-│
-└── /data # Game resource
-├── /audio
-├── /fonts
-└── /textures
+<img width="548" height="805" alt="image" src="https://github.com/user-attachments/assets/5a6e26d3-bdf0-4112-be5a-0a72ae737a3d" />
+
+
 
 ## Patch note
 #### (2025-07-18 ~ 2025-09-28) Migration from Processing to C++
