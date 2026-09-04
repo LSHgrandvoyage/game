@@ -2,6 +2,13 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -g -Isrc
 LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
+# Homebrew paths (macOS); harmless no-op elsewhere
+BREW_PREFIX := $(shell brew --prefix 2>/dev/null)
+ifneq ($(BREW_PREFIX),)
+CXXFLAGS += -I$(BREW_PREFIX)/include
+LDFLAGS := -L$(BREW_PREFIX)/lib $(LDFLAGS)
+endif
+
 # Source files with new directory structure
 SRCS = src/main.cpp \
        src/game/Game.cpp \
