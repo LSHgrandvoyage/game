@@ -5,12 +5,21 @@
 #include <ctime>
 #include <algorithm>
 
-Game::Game() : window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Spaceship Game"),
-               score(0), highScore(0), gameOver(false), showLevelUp(false), levelUpTime(0),
+Game::Game() : window(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}), "Spaceship Game"),
+               score(0), highScore(0), gameOver(false), showLevelUp(false),
                spacePressed(false), simulatedVolume(0.0f) {
     srand(static_cast<unsigned>(time(nullptr)));
+    window.setFramerateLimit(60);
     initializeResources();
     initializeGameObjects();
+}
+
+Game::~Game() {
+    // Release GL/audio resources while the window (and its GL context) is
+    // still alive; the manager singletons are destroyed only after main()
+    // returns, which crashes on macOS (SFContext teardown -> terminate).
+    AudioManager::getInstance().shutdown();
+    ResourceManager::getInstance().clear();
 }
 
 void Game::run(){
@@ -24,18 +33,17 @@ void Game::run(){
 }
 
 void Game::handleEvents(){
-    sf::Event event;
-    while (window.pollEvent(event)){
-        if (event.type == sf::Event::Closed){
+    while (const std::optional event = window.pollEvent()){
+        if (event->is<sf::Event::Closed>()){
             window.close();
         }
-        if (gameOver && event.type == sf::Event::MouseButtonPressed){
+        if (gameOver && event->is<sf::Event::MouseButtonPressed>()){
             resetGame();
         }
-        
+
         // Handle keyboard input - spacebar gives boost
-        if (event.type == sf::Event::KeyPressed) {
-            if (event.key.code == sf::Keyboard::Space) {
+        if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+            if (keyPressed->code == sf::Keyboard::Key::Space) {
                 // Give spaceship a small upward boost
                 spaceship->giveBoost();
             }
@@ -45,7 +53,7 @@ void Game::handleEvents(){
 
 void Game::update(float dt) {
     if (gameOver) return;
-    
+
     updateGameplay(dt);
     updateObstacles(dt);
     checkCollisions();
@@ -54,25 +62,25 @@ void Game::update(float dt) {
 
 void Game::render() {
     window.clear();
-    
+
     renderBackground();
-    
+
     for (auto& obs : obstacles) {
         obs.render(window);
     }
-    
+
     spaceship->render(window);
     renderUI();
     renderDebugInfo();
-    
+
     if (showLevelUp) {
         renderLevelUp();
     }
-    
+
     if (gameOver) {
         renderGameOver();
     }
-    
+
     window.display();
 }
 
@@ -83,12 +91,12 @@ void Game::resetGame() {
     spacePressed = false;
     simulatedVolume = 0.0f;
     spaceship->reset();
-    
+
     for (size_t i = 0; i < obstacles.size(); i++) {
         float x = WINDOW_WIDTH + i * (OBSTACLE_SPACING + Obstacle::WIDTH);
         obstacles[i] = Obstacle(x, INITIAL_GAP);
     }
-    
+
     AudioManager::getInstance().playMusic("bgm", true);
 }
 
@@ -107,7 +115,7 @@ void Game::initializeResources() {
 
 void Game::initializeGameObjects() {
     spaceship = std::make_unique<Spaceship>();
-    
+
     for (int i = 0; i < INITIAL_OBSTACLE_COUNT; i++) {
         float x = WINDOW_WIDTH + i * (OBSTACLE_SPACING + Obstacle::WIDTH);
         obstacles.emplace_back(x, INITIAL_GAP);
@@ -116,13 +124,13 @@ void Game::initializeGameObjects() {
 
 void Game::updateGameplay(float dt) {
     AudioManager::getInstance().updateMicVolume();
-    
+
     // Use mic volume if available
     if (AudioManager::getInstance().isMicAvailable()) {
         float volume = AudioManager::getInstance().getMicVolume();
         spaceship->handleMicInput(volume);
     }
-    
+
     spaceship->update(dt);
 }
 
@@ -139,7 +147,7 @@ void Game::checkCollisions() {
             return;
         }
     }
-    
+
     // Check if spaceship hit the ground
     if (spaceship->getY() > WINDOW_HEIGHT + spaceship->getRadius()) {
         handleGameOver();
@@ -156,17 +164,14 @@ void Game::updateScore() {
             }
             if (score != 0 && score % SCORE_PER_LEVEL == 0) {
                 showLevelUp = true;
-                levelUpTime = clock() / (float)CLOCKS_PER_SEC;
+                levelUpClock.restart();
                 AudioManager::getInstance().playSound("levelup");
             }
         }
     }
-    
-    if (showLevelUp) {
-        float now = clock() / (float)CLOCKS_PER_SEC;
-        if (now - levelUpTime > LEVEL_UP_DURATION) {
-            showLevelUp = false;
-        }
+
+    if (showLevelUp && levelUpClock.getElapsedTime().asSeconds() > LEVEL_UP_DURATION) {
+        showLevelUp = false;
     }
 }
 
@@ -178,80 +183,89 @@ void Game::handleGameOver() {
 
 void Game::renderBackground() {
     sf::Sprite background(ResourceManager::getInstance().getTexture("background"));
-    
+
     // Calculate scale to maintain aspect ratio and fill screen
-    float scaleX = (float)WINDOW_WIDTH / background.getTexture()->getSize().x;
-    float scaleY = (float)WINDOW_HEIGHT / background.getTexture()->getSize().y;
+    sf::Vector2u texSize = background.getTexture().getSize();
+    float scaleX = (float)WINDOW_WIDTH / texSize.x;
+    float scaleY = (float)WINDOW_HEIGHT / texSize.y;
     float scale = std::max(scaleX, scaleY); // Use max to ensure full coverage
-    
-    background.setScale(scale, scale);
-    
+
+    background.setScale({scale, scale});
+
     // Center the background
-    background.setPosition(
-        (WINDOW_WIDTH - background.getGlobalBounds().width) / 2,
-        (WINDOW_HEIGHT - background.getGlobalBounds().height) / 2
-    );
-    
+    background.setPosition({
+        (WINDOW_WIDTH - background.getGlobalBounds().size.x) / 2,
+        (WINDOW_HEIGHT - background.getGlobalBounds().size.y) / 2
+    });
+
     window.draw(background);
 }
 
 void Game::renderUI() {
     sf::Font& font = ResourceManager::getInstance().getFont("main");
-    
-    sf::Text scoreText("Score: " + std::to_string(score), font, 32);
-    scoreText.setPosition(30, 20);
+
+    sf::Text scoreText(font, "Score: " + std::to_string(score), 32);
+    scoreText.setPosition({30, 20});
     window.draw(scoreText);
 
-    sf::Text highScoreText("High Score: " + std::to_string(highScore), font, 32);
-    highScoreText.setPosition(30, 60);
+    sf::Text highScoreText(font, "High Score: " + std::to_string(highScore), 32);
+    highScoreText.setPosition({30, 60});
     window.draw(highScoreText);
 }
 
 void Game::renderDebugInfo() {
     sf::Font& font = ResourceManager::getInstance().getFont("main");
-    
+
     // Mic status
     bool micAvailable = AudioManager::getInstance().isMicAvailable();
-    sf::Text micStatusText("Mic Status: " + std::string(micAvailable ? "OK" : "FAILED"), font, 24);
-    micStatusText.setPosition(30, 100);
+    sf::Text micStatusText(font, "Mic Status: " + std::string(micAvailable ? "OK" : "FAILED"), 24);
+    micStatusText.setPosition({30, 100});
     micStatusText.setFillColor(micAvailable ? sf::Color::Green : sf::Color::Red);
     window.draw(micStatusText);
-    
-    // Mic volume
+
+    // Mic volume (input-adjusted, with raw level and measured noise floor)
     float volume = AudioManager::getInstance().getMicVolume();
-    sf::Text volumeText("Mic Volume: " + std::to_string(static_cast<int>(volume)), font, 24);
-    volumeText.setPosition(30, 130);
+    std::string volumeLabel;
+    if (AudioManager::getInstance().isCalibrating()) {
+        volumeLabel = "Mic: calibrating... stay quiet";
+    } else {
+        volumeLabel = "Mic Volume: " + std::to_string(static_cast<int>(volume))
+                    + " (raw " + std::to_string(static_cast<int>(AudioManager::getInstance().getRawMicVolume()))
+                    + " / floor " + std::to_string(static_cast<int>(AudioManager::getInstance().getNoiseFloor())) + ")";
+    }
+    sf::Text volumeText(font, volumeLabel, 24);
+    volumeText.setPosition({30, 130});
     volumeText.setFillColor(sf::Color::Yellow);
     window.draw(volumeText);
 
     // Spaceship position
-    sf::Text spaceshipYText("Spaceship Y: " + std::to_string(static_cast<int>(spaceship->getY())), font, 24);
-    spaceshipYText.setPosition(30, 160);
+    sf::Text spaceshipYText(font, "Spaceship Y: " + std::to_string(static_cast<int>(spaceship->getY())), 24);
+    spaceshipYText.setPosition({30, 160});
     spaceshipYText.setFillColor(sf::Color::Cyan);
     window.draw(spaceshipYText);
-    
+
     // Volume bar visualization
     sf::RectangleShape volumeBar(sf::Vector2f(volume * 2.0f, 20));
-    volumeBar.setPosition(30, 190);
+    volumeBar.setPosition({30, 190});
     volumeBar.setFillColor(volume > 0.5f ? sf::Color::Green : sf::Color::Red);
     window.draw(volumeBar);
-    
+
     sf::RectangleShape volumeBarBg(sf::Vector2f(200, 20));
-    volumeBarBg.setPosition(30, 190);
+    volumeBarBg.setPosition({30, 190});
     volumeBarBg.setFillColor(sf::Color::Transparent);
     volumeBarBg.setOutlineColor(sf::Color::White);
     volumeBarBg.setOutlineThickness(1);
     window.draw(volumeBarBg);
-    
+
     // Instructions
     if (!micAvailable) {
-        sf::Text instructionText("Press SPACE to boost up", font, 20);
-        instructionText.setPosition(30, 220);
+        sf::Text instructionText(font, "Press SPACE to boost up", 20);
+        instructionText.setPosition({30, 220});
         instructionText.setFillColor(sf::Color::White);
         window.draw(instructionText);
     } else {
-        sf::Text instructionText("Speak into microphone OR press SPACE to boost", font, 20);
-        instructionText.setPosition(30, 220);
+        sf::Text instructionText(font, "Speak into microphone OR press SPACE to boost", 20);
+        instructionText.setPosition({30, 220});
         instructionText.setFillColor(sf::Color::White);
         window.draw(instructionText);
     }
@@ -259,48 +273,49 @@ void Game::renderDebugInfo() {
 
 void Game::renderLevelUp() {
     sf::Font& font = ResourceManager::getInstance().getFont("main");
-    sf::Text levelUpText("Level Up!", font, 48);
+    sf::Text levelUpText(font, "Level Up!", 48);
     levelUpText.setFillColor(sf::Color::Yellow);
-    levelUpText.setPosition(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
-    levelUpText.setOrigin(levelUpText.getLocalBounds().width / 2, levelUpText.getLocalBounds().height / 2);
+    levelUpText.setOrigin({levelUpText.getLocalBounds().size.x / 2, levelUpText.getLocalBounds().size.y / 2});
+    levelUpText.setPosition({WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2});
     window.draw(levelUpText);
 }
 
 void Game::renderGameOver() {
     sf::Font& font = ResourceManager::getInstance().getFont("main");
-    
+
     sf::Sprite boom(ResourceManager::getInstance().getTexture("explode"));
-    
+
     // Calculate scale to maintain aspect ratio and fill screen
-    float scaleX = (float)WINDOW_WIDTH / boom.getTexture()->getSize().x;
-    float scaleY = (float)WINDOW_HEIGHT / boom.getTexture()->getSize().y;
+    sf::Vector2u texSize = boom.getTexture().getSize();
+    float scaleX = (float)WINDOW_WIDTH / texSize.x;
+    float scaleY = (float)WINDOW_HEIGHT / texSize.y;
     float scale = std::max(scaleX, scaleY);
-    
-    boom.setScale(scale, scale);
-    
+
+    boom.setScale({scale, scale});
+
     // Center the explosion background
-    boom.setPosition(
-        (WINDOW_WIDTH - boom.getGlobalBounds().width) / 2,
-        (WINDOW_HEIGHT - boom.getGlobalBounds().height) / 2
-    );
-    
+    boom.setPosition({
+        (WINDOW_WIDTH - boom.getGlobalBounds().size.x) / 2,
+        (WINDOW_HEIGHT - boom.getGlobalBounds().size.y) / 2
+    });
+
     window.draw(boom);
 
-    sf::Text boomText("BOOM!", font, 96);
+    sf::Text boomText(font, "BOOM!", 96);
     boomText.setFillColor(sf::Color::Red);
-    boomText.setOrigin(boomText.getLocalBounds().width / 2, boomText.getLocalBounds().height / 2);
-    boomText.setPosition(WINDOW_WIDTH / 2, 350);
+    boomText.setOrigin({boomText.getLocalBounds().size.x / 2, boomText.getLocalBounds().size.y / 2});
+    boomText.setPosition({WINDOW_WIDTH / 2, 350});
     window.draw(boomText);
 
-    sf::Text scoreText("Score: " + std::to_string(score), font, 48);
+    sf::Text scoreText(font, "Score: " + std::to_string(score), 48);
     scoreText.setFillColor(sf::Color::White);
-    scoreText.setOrigin(scoreText.getLocalBounds().width / 2, scoreText.getLocalBounds().height / 2);
-    scoreText.setPosition(WINDOW_WIDTH / 2, 450);
+    scoreText.setOrigin({scoreText.getLocalBounds().size.x / 2, scoreText.getLocalBounds().size.y / 2});
+    scoreText.setPosition({WINDOW_WIDTH / 2, 450});
     window.draw(scoreText);
 
-    sf::Text highScoreText("High Score: " + std::to_string(highScore), font, 48);
+    sf::Text highScoreText(font, "High Score: " + std::to_string(highScore), 48);
     highScoreText.setFillColor(sf::Color::White);
-    highScoreText.setOrigin(highScoreText.getLocalBounds().width / 2, highScoreText.getLocalBounds().height / 2);
-    highScoreText.setPosition(WINDOW_WIDTH / 2, 520);
+    highScoreText.setOrigin({highScoreText.getLocalBounds().size.x / 2, highScoreText.getLocalBounds().size.y / 2});
+    highScoreText.setPosition({WINDOW_WIDTH / 2, 520});
     window.draw(highScoreText);
 }

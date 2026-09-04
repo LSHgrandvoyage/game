@@ -2,9 +2,9 @@
 #include "managers/ResourceManager.h"
 #include <cstdlib>
 
-Obstacle::Obstacle(float x_, float gap_) : x(x_), gap(gap_), scored(false) {
+Obstacle::Obstacle(float x_, float gap_) : x(x_), gap(gap_), scored(false),
+                                           sprite(ResourceManager::getInstance().getTexture("obstacle")) {
     resetPosition(0);
-    sprite.setTexture(ResourceManager::getInstance().getTexture("obstacle"));
 }
 
 void Obstacle::update(float dt, int score) {
@@ -25,20 +25,20 @@ bool Obstacle::checkCollision(const Spaceship& spaceship) const {
     if (!isInXRange(spaceship)) {
         return false;
     }
-    
+
     float shipY = spaceship.getY();
     float shipRadius = spaceship.getRadius();
-    
+
     // Check collision with upper obstacle
     if (shipY - shipRadius < y) {
         return true;
     }
-    
+
     // Check collision with lower obstacle
     if (shipY + shipRadius > y + gap) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -46,12 +46,12 @@ bool Obstacle::hasPassed(const Spaceship& ship) const {
     return (x + WIDTH < SPACESHIP_X) && !scored;
 }
 
-bool Obstacle::isScored() const { 
-    return scored; 
+bool Obstacle::isScored() const {
+    return scored;
 }
 
-void Obstacle::setScored(bool val) { 
-    scored = val; 
+void Obstacle::setScored(bool val) {
+    scored = val;
 }
 
 void Obstacle::resetPosition(int score) {
@@ -59,23 +59,23 @@ void Obstacle::resetPosition(int score) {
     if (currentGap < MIN_GAP) {
         currentGap = MIN_GAP;
     }
-    
+
     float maxY = SCREEN_HEIGHT - currentGap - MIN_HEIGHT;
     y = rand() % (int)(maxY - MIN_HEIGHT + 1) + MIN_HEIGHT;
     gap = currentGap;
 }
 
 void Obstacle::renderUpperObstacle(sf::RenderWindow& window) {
-    sprite.setPosition(x, 0);
-    sprite.setScale(WIDTH / sprite.getTexture()->getSize().x, 
-                   y / sprite.getTexture()->getSize().y);
+    sf::Vector2u texSize = sprite.getTexture().getSize();
+    sprite.setPosition({x, 0});
+    sprite.setScale({WIDTH / texSize.x, y / texSize.y});
     window.draw(sprite);
 }
 
 void Obstacle::renderLowerObstacle(sf::RenderWindow& window) {
-    sprite.setPosition(x, y + gap);
-    sprite.setScale(WIDTH / sprite.getTexture()->getSize().x, 
-                   (SCREEN_HEIGHT - (y + gap)) / sprite.getTexture()->getSize().y);
+    sf::Vector2u texSize = sprite.getTexture().getSize();
+    sprite.setPosition({x, y + gap});
+    sprite.setScale({WIDTH / texSize.x, (SCREEN_HEIGHT - (y + gap)) / texSize.y});
     window.draw(sprite);
 }
 

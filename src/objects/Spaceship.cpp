@@ -1,17 +1,20 @@
 #include "objects/Spaceship.h"
 #include "managers/ResourceManager.h"
 
-Spaceship::Spaceship() : y(300), ySpeed(0), radius(40) {
-    sprite.setTexture(ResourceManager::getInstance().getTexture("spaceship"));
-    sprite.setOrigin(radius, radius);
-    sprite.setScale(0.15f, 0.1f);
-    sprite.setPosition(50, y);
+Spaceship::Spaceship() : y(300), ySpeed(0), radius(40),
+                         sprite(ResourceManager::getInstance().getTexture("spaceship")) {
+    // Center the origin on the texture so the sprite is drawn around (50, y),
+    // matching the collision circle, and scale it to the collision diameter.
+    sf::Vector2u texSize = sprite.getTexture().getSize();
+    sprite.setOrigin({texSize.x / 2.0f, texSize.y / 2.0f});
+    sprite.setScale({2.0f * radius / texSize.x, 2.0f * radius / texSize.y});
+    sprite.setPosition({50, y});
 }
 
 void Spaceship::update(float dt) {
     applyPhysics(dt);
     constrainMovement();
-    sprite.setPosition(50, y);
+    sprite.setPosition({50, y});
 }
 
 void Spaceship::render(sf::RenderWindow& window) {
@@ -41,35 +44,32 @@ void Spaceship::giveBoost() {
 void Spaceship::reset() {
     y = 300;
     ySpeed = 0;
-    sprite.setPosition(50, y);
+    sprite.setPosition({50, y});
 }
 
 void Spaceship::applyPhysics(float dt) {
-    ySpeed += GRAVITY;
-    y += ySpeed;
+    float frames = dt * 60.0f; // Normalize to 60 FPS, like Obstacle::update
+    ySpeed += GRAVITY * frames;
+    y += ySpeed * frames;
 }
 
 void Spaceship::constrainMovement() {
-    // Top boundary
+    // Top boundary only — falling below the screen must stay possible,
+    // Game::checkCollisions treats it as hitting the ground (game over).
     if (y < radius) {
         y = radius;
         ySpeed = 0;
     }
-    // Bottom boundary
-    if (y > 900 - radius) {
-        y = 900 - radius;
-        ySpeed = 0;
-    }
 }
 
-float Spaceship::getY() const { 
-    return y; 
+float Spaceship::getY() const {
+    return y;
 }
 
-float Spaceship::getRadius() const { 
-    return radius; 
+float Spaceship::getRadius() const {
+    return radius;
 }
 
-sf::FloatRect Spaceship::getBounds() const { 
-    return sprite.getGlobalBounds(); 
+sf::FloatRect Spaceship::getBounds() const {
+    return sprite.getGlobalBounds();
 }
