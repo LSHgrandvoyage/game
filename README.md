@@ -7,7 +7,7 @@
 - 스페이스바로도 상승할 수 있습니다 (마이크 없이 플레이 가능)
 - 소행성 기둥 사이를 통과하면 점수, 10점마다 레벨업 — 부딪히거나 추락하면 게임 오버, 클릭으로 재시작
 
-📄 [게임 기획/소개 문서 (Notion)](https://ballistic-twig-9cd.notion.site/00-About-the-game-18fc4f296fb38037b119f9a6baff1873)
+📄 [게임 기획/소개 문서 (Notion)](https://quilled-income-00d.notion.site/GAME-2b1ccd21a42e810bb7ffd155a3ff6280?pvs=74)
 
 ## 빌드 & 실행
 
